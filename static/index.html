@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyLine Airways — Book a Flight</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #eef2f7;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: white;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-icon { margin-right: 10px; font-size: 20px; }
+    .tagline { font-size: 12px; opacity: 0.7; margin-top: 2px; letter-spacing: 0.3px; }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .container {
+      max-width: 660px;
+      margin: 36px auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Progress ───────────────────────────────────────────── */
+    .progress {
+      display: flex;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .p-step { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .p-dot {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #dde3ee; color: #94a3b8;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; transition: all .25s;
+    }
+    .p-dot.active { background: #2563eb; color: #fff; }
+    .p-dot.done   { background: #059669; color: #fff; }
+    .p-label { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+    .p-label.active { color: #2563eb; }
+    .p-line { flex: 1; height: 2px; background: #dde3ee; margin: 0 8px 18px; transition: background .25s; }
+    .p-line.done { background: #059669; }
+
+    /* ── Card ───────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 6px 24px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .card-head { padding: 26px 28px 0; }
+    .card-title { font-size: 20px; font-weight: 800; }
+    .card-sub   { font-size: 13px; color: #64748b; margin-top: 3px; }
+    .card-body  { padding: 22px 28px 28px; }
+
+    /* ── Form ───────────────────────────────────────────────── */
+    .field { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 11px; font-weight: 700; color: #374151;
+      text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px;
+    }
+    input[type=text], input[type=date] {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-size: 15px; color: #1a202c; background: #f8fafc;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus {
+      border-color: #2563eb; background: #fff;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+    input::placeholder { color: #aab4c4; }
+
+    .route-row {
+      display: grid;
+      grid-template-columns: 1fr 44px 1fr;
+      gap: 10px; align-items: end; margin-bottom: 18px;
+    }
+    .swap-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1.5px solid #e2e8f0; background: #fff;
+      font-size: 17px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s; margin-bottom: 1px;
+    }
+    .swap-btn:hover { border-color: #2563eb; color: #2563eb; transform: rotate(180deg); }
+
+    /* ── Buttons ────────────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 13px;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all .2s;
+    }
+    .btn-blue  { background: #2563eb; color: #fff; }
+    .btn-blue:hover  { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,.35); }
+    .btn-blue:disabled { background: #93c5fd; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-green { background: #059669; color: #fff; }
+    .btn-green:hover { background: #047857; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(5,150,105,.35); }
+    .btn-green:disabled { background: #6ee7b7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── Alerts ─────────────────────────────────────────────── */
+    .alert {
+      padding: 11px 14px; border-radius: 10px;
+      font-size: 13px; margin-bottom: 18px;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .alert-err  { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .alert-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+    /* ── Flight cards ───────────────────────────────────────── */
+    .flight-card {
+      border: 1.5px solid #e2e8f0; border-radius: 13px;
+      padding: 16px 18px; margin-bottom: 11px; cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .flight-card:hover   { border-color: #93c5fd; box-shadow: 0 2px 10px rgba(37,99,235,.1); }
+    .flight-card.picked  { border-color: #2563eb; background: #eff6ff; }
+
+    .fc-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .fc-airline { font-size: 12px; color: #64748b; }
+    .fc-fnum    { font-size: 15px; font-weight: 800; margin-top: 1px; }
+    .fc-price   { text-align: right; }
+    .fc-amount  { font-size: 22px; font-weight: 800; color: #2563eb; }
+    .fc-pp      { font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+
+    .fc-times { display: flex; align-items: center; gap: 10px; }
+    .fc-time  { text-align: center; }
+    .fc-t     { font-size: 20px; font-weight: 800; }
+    .fc-iata  { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+    .fc-mid   { flex: 1; text-align: center; }
+    .fc-dur   { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+    .fc-line  {
+      height: 1px; background: #cbd5e1; position: relative; margin: 0 4px;
+    }
+    .fc-line::before, .fc-line::after {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: #94a3b8; position: absolute; top: -2px;
+    }
+    .fc-line::before { left: 0; }
+    .fc-line::after  { right: 0; }
+
+    .fc-seats { font-size: 12px; margin-top: 10px; text-align: right; }
+    .seats-low  { color: #dc2626; }
+    .seats-med  { color: #d97706; }
+    .seats-ok   { color: #94a3b8; }
+
+    /* ── Review ─────────────────────────────────────────────── */
+    .rv-block {
+      border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 14px 18px; margin-bottom: 14px;
+    }
+    .rv-lbl { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+    .rv-val { font-size: 15px; font-weight: 600; color: #1a202c; }
+    .rv-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+    .total-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #f8fafc; border-radius: 12px; padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+    .total-lbl { font-size: 14px; font-weight: 600; color: #64748b; }
+    .total-amt { font-size: 26px; font-weight: 800; color: #2563eb; }
+
+    /* ── Success ────────────────────────────────────────────── */
+    .success-wrap { text-align: center; padding: 36px 28px; }
+    .check-icon {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: #d1fae5; font-size: 30px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+    }
+    .success-h  { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .success-p  { font-size: 14px; color: #64748b; margin-bottom: 26px; }
+
+    .conf-badge {
+      background: #eff6ff; border: 2px dashed #93c5fd;
+      border-radius: 13px; padding: 18px 24px; margin-bottom: 20px;
+    }
+    .conf-lbl   { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .conf-num   { font-size: 28px; font-weight: 900; color: #2563eb; letter-spacing: 4px; }
+
+    .sent-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: 11px 16px;
+      font-size: 13px; color: #059669; margin-bottom: 22px;
+    }
+    .details-left { text-align: left; }
+
+    /* ── Helper ─────────────────────────────────────────────── */
+    .hint   { font-size: 11px; color: #94a3b8; margin-top: 5px; }
+    .hidden { display: none !important; }
+    .divider{ height: 1px; background: #f1f5f9; margin: 18px 0; }
+
+    /* ── Spinner ────────────────────────────────────────────── */
+    .spin {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      animation: rot .7s linear infinite;
+    }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    /* ── Back link ──────────────────────────────────────────── */
+    .back {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: #64748b; font-size: 13px; cursor: pointer;
+      margin-bottom: 16px;
+    }
+    .back:hover { color: #2563eb; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div>
+    <div class="logo"><span class="logo-icon">✈</span>SkyLine Airways</div>
+    <div class="tagline">Book your next adventure</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Progress -->
+  <div class="progress" id="prog">
+    <div class="p-step">
+      <div class="p-dot active" id="d1">1</div>
+      <div class="p-label active" id="l1">Search</div>
+    </div>
+    <div class="p-line" id="ln1"></div>
+    <div class="p-step">
+      <div class="p-dot" id="d2">2</div>
+      <div class="p-label" id="l2">Flights</div>
+    </div>
+    <div class="p-line" id="ln2"></div>
+    <div class="p-step">
+      <div class="p-dot" id="d3">3</div>
+      <div class="p-label" id="l3">Details</div>
+    </div>
+    <div class="p-line" id="ln3"></div>
+    <div class="p-step">
+      <div class="p-dot" id="d4">4</div>
+      <div class="p-label" id="l4">Confirm</div>
+    </div>
+  </div>
+
+  <!-- ── Step 1: Search ─────────────────────────────────────── -->
+  <div id="s1" class="card">
+    <div class="card-head">
+      <div class="card-title">Where are you flying?</div>
+      <div class="card-sub">Enter your route and travel date to see available flights</div>
+    </div>
+    <div class="card-body">
+      <div id="err1" class="alert alert-err hidden"></div>
+
+      <div class="route-row">
+        <div class="field" style="margin:0">
+          <label>From</label>
+          <input type="text" id="inp-from" placeholder="e.g. Los Angeles" autocomplete="off" />
+        </div>
+        <button class="swap-btn" onclick="swapCities()" title="Swap cities">⇄</button>
+        <div class="field" style="margin:0">
+          <label>To</label>
+          <input type="text" id="inp-to" placeholder="e.g. New York" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Travel Date</label>
+        <input type="date" id="inp-date" />
+      </div>
+
+      <button class="btn btn-blue" id="btn-search" onclick="doSearch()">
+        Search Flights
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Step 2: Flight Results ─────────────────────────────── -->
+  <div id="s2" class="card hidden">
+    <div class="card-head">
+      <div class="card-title">Available Flights</div>
+      <div class="card-sub" id="s2-sub"></div>
+    </div>
+    <div class="card-body">
+      <div id="err2" class="alert alert-err hidden"></div>
+      <div id="flight-list"></div>
+      <button class="btn btn-blue hidden" id="btn-pick" onclick="goToDetails()">
+        Continue with Selected Flight →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Step 3: Passenger Details ─────────────────────────── -->
+  <div id="s3" class="card hidden">
+    <div class="card-head">
+      <div class="card-title">Passenger Details</div>
+      <div class="card-sub">Enter your information exactly as it appears on your ID</div>
+    </div>
+    <div class="card-body">
+      <div id="err3" class="alert alert-err hidden"></div>
+
+      <div class="field">
+        <label>Full Legal Name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Jane Marie Smith" autocomplete="name" />
+      </div>
+
+      <div class="field">
+        <label>Confirmation Contact</label>
+        <input type="text" id="inp-contact" placeholder="US phone number or email address" autocomplete="email" />
+        <div class="hint">US number (e.g. 4155550123) → SMS confirmation &nbsp;·&nbsp; Email → email confirmation</div>
+      </div>
+
+      <button class="btn btn-blue" onclick="goToReview()">Review Booking →</button>
+    </div>
+  </div>
+
+  <!-- ── Step 4: Review & Confirm ──────────────────────────── -->
+  <div id="s4" class="card hidden">
+    <div class="card-head">
+      <div class="card-title">Review Your Booking</div>
+      <div class="card-sub">Please confirm all details — this cannot be undone</div>
+    </div>
+    <div class="card-body">
+      <div id="err4" class="alert alert-err hidden"></div>
+
+      <div class="rv-block">
+        <div class="rv-lbl">Flight</div>
+        <div class="rv-val" id="rv-flight"></div>
+        <div class="rv-sub" id="rv-route"></div>
+        <div class="rv-sub" id="rv-times"></div>
+      </div>
+
+      <div class="rv-block">
+        <div class="rv-lbl">Passenger</div>
+        <div class="rv-val" id="rv-name"></div>
+        <div class="rv-sub" id="rv-contact"></div>
+      </div>
+
+      <div class="total-bar">
+        <div class="total-lbl">Total</div>
+        <div class="total-amt" id="rv-price"></div>
+      </div>
+
+      <button class="btn btn-green" id="btn-confirm" onclick="doConfirm()">
+        Confirm &amp; Book
+      </button>
+
+      <div style="text-align:center;margin-top:14px">
+        <span class="back" onclick="goBack(4)">← Go back</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 5: Success ───────────────────────────────────── -->
+  <div id="s5" class="card hidden">
+    <div class="success-wrap">
+      <div class="check-icon">✓</div>
+      <div class="success-h">Booking Confirmed!</div>
+      <div class="success-p">Your flight has been booked successfully</div>
+
+      <div class="conf-badge">
+        <div class="conf-lbl">Confirmation Number</div>
+        <div class="conf-num" id="conf-num"></div>
+      </div>
+
+      <div class="sent-box" id="sent-box"></div>
+
+      <div class="rv-block details-left">
+        <div class="rv-lbl">Flight</div>
+        <div class="rv-val" id="ok-flight"></div>
+        <div class="rv-sub" id="ok-route"></div>
+        <div class="rv-sub" id="ok-times"></div>
+      </div>
+
+      <div class="rv-block details-left">
+        <div class="rv-lbl">Passenger</div>
+        <div class="rv-val" id="ok-name"></div>
+      </div>
+
+      <button class="btn btn-blue" onclick="resetApp()" style="margin-top:10px">
+        Book Another Flight
+      </button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ─── State ────────────────────────────────────────────────────
+const S = {
+  origin: null,       // { iata, label }
+  dest:   null,
+  date:   '',
+  flights: [],
+  picked:  null,      // selected flight object
+  name:    '',
+  contact: '',
+};
+
+// ─── API ──────────────────────────────────────────────────────
+async function tool(name, params) {
+  const r = await fetch('/tools', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, parameters: params }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Server error');
+  return d.result;
+}
+
+async function resolveAirport(city) {
+  const res = await tool('resolve_airport', { city_name: city });
+  if (res.startsWith('NOT_FOUND:'))
+    throw new Error(`Couldn't find an airport for "${city}". Try a nearby major city.`);
+  // "FOUND: LAX — Los Angeles International Airport (Los Angeles)"
+  const m = res.match(/FOUND:\s+(\w+)\s+—\s+(.+?)\s+\(/);
+  if (!m) throw new Error(`Unexpected response: ${res}`);
+  return { iata: m[1], label: `${m[1]} — ${m[2]}` };
+}
+
+async function searchFlights(oIata, dIata, date) {
+  const res = await tool('check_flights', { origin_iata: oIata, destination_iata: dIata, travel_date: date });
+  if (res.startsWith('DATE_ERROR:')) throw new Error(res.replace('DATE_ERROR:', '').trim());
+  if (res.startsWith('NO_FLIGHTS:')) throw new Error(res.replace('NO_FLIGHTS:', '').trim());
+  return parseFlights(res);
+}
+
+function parseFlights(text) {
+  return text.split('\n').slice(1).filter(Boolean).map(line => {
+    // "Option 1: SkyLine Airways Flight SKY101 | Departs 06:00 → Arrives 14:30 (5h 30m) | $249 | 18 seats left"
+    const m = line.match(
+      /Option\s+\d+:\s+(.+?)\s+Flight\s+(\S+)\s+\|\s+Departs\s+(\S+)\s+→\s+Arrives\s+(\S+)\s+\((.+?)\)\s+\|\s+\$(\d+)\s+\|\s+(\d+)/
+    );
+    if (!m) return null;
+    return { airline: m[1], flight_id: m[2], dep: m[3], arr: m[4], dur: m[5], price: +m[6], seats: +m[7] };
+  }).filter(Boolean);
+}
+
+async function bookFlight(f) {
+  const res = await tool('book_flight', {
+    flight_id: f.flight_id,
+    travel_date: S.date,
+    passenger_name: S.name,
+    contact_info: S.contact,
+  });
+  if (res.startsWith('ERROR:')) throw new Error(res.replace('ERROR:', '').trim());
+  const m = res.match(/Confirmation Number:\s+(SKY-\w+)/);
+  return m ? m[1] : 'SKY-UNKNOWN';
+}
+
+async function sendConf(confNum, f) {
+  return tool('send_confirmation', {
+    confirmation_number: confNum,
+    passenger_name: S.name,
+    contact_info: S.contact,
+    flight_id: f.flight_id,
+    airline: f.airline,
+    origin: S.origin.iata,
+    destination: S.dest.iata,
+    travel_date: S.date,
+    departure_time: f.dep,
+    arrival_time: f.arr,
+    price: f.price,
+  });
+}
+
+// ─── Progress ─────────────────────────────────────────────────
+function setProgress(active) {
+  for (let i = 1; i <= 4; i++) {
+    const dot  = document.getElementById(`d${i}`);
+    const lbl  = document.getElementById(`l${i}`);
+    const line = document.getElementById(`ln${i}`);
+    dot.className = 'p-dot'; lbl.className = 'p-label';
+    if (line) line.className = 'p-line';
+
+    if (i < active) {
+      dot.classList.add('done'); dot.textContent = '✓';
+      if (line) line.classList.add('done');
+    } else if (i === active) {
+      dot.classList.add('active'); dot.textContent = i;
+      lbl.classList.add('active');
+    } else {
+      dot.textContent = i;
+    }
+  }
+}
+
+function showStep(n) {
+  [1,2,3,4,5].forEach(i => document.getElementById(`s${i}`).classList.add('hidden'));
+  document.getElementById(`s${n}`).classList.remove('hidden');
+  setProgress(Math.min(n, 4));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+function err(id, msg) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<span>⚠</span> ${msg}`;
+  el.classList.remove('hidden');
+}
+function clearErr(id) { document.getElementById(id).classList.add('hidden'); }
+
+function fmtDate(s) {
+  const d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+}
+
+function seatsClass(n)  { return n <= 5 ? 'seats-low' : n <= 10 ? 'seats-med' : 'seats-ok'; }
+function seatsIcon(n)   { return n <= 5 ? '🔴' : n <= 10 ? '🟡' : '🟢'; }
+
+function btnLoading(id, msg) {
+  const b = document.getElementById(id);
+  b.disabled = true;
+  b.innerHTML = `<div class="spin"></div>${msg}`;
+}
+function btnReset(id, msg) {
+  const b = document.getElementById(id);
+  b.disabled = false;
+  b.textContent = msg;
+}
+
+// ─── Step 1 — Search ──────────────────────────────────────────
+function swapCities() {
+  const a = document.getElementById('inp-from');
+  const b = document.getElementById('inp-to');
+  [a.value, b.value] = [b.value, a.value];
+  [S.origin, S.dest] = [S.dest, S.origin];
+}
+
+async function doSearch() {
+  clearErr('err1');
+  const from = document.getElementById('inp-from').value.trim();
+  const to   = document.getElementById('inp-to').value.trim();
+  const date = document.getElementById('inp-date').value;
+
+  if (!from || !to || !date) { err('err1', 'Please fill in all three fields.'); return; }
+  if (from.toLowerCase() === to.toLowerCase()) { err('err1', 'Departure and destination cannot be the same.'); return; }
+
+  btnLoading('btn-search', ' Searching…');
+  try {
+    const [origin, dest] = await Promise.all([resolveAirport(from), resolveAirport(to)]);
+    S.origin = origin; S.dest = dest; S.date = date;
+    S.flights = await searchFlights(origin.iata, dest.iata, date);
+    S.picked = null;
+    renderFlights();
+    showStep(2);
+  } catch(e) {
+    err('err1', e.message);
+  } finally {
+    btnReset('btn-search', 'Search Flights');
+  }
+}
+
+// ─── Step 2 — Pick Flight ─────────────────────────────────────
+function renderFlights() {
+  document.getElementById('s2-sub').textContent =
+    `${S.origin.iata} → ${S.dest.iata}  ·  ${fmtDate(S.date)}  ·  ${S.flights.length} option${S.flights.length !== 1 ? 's' : ''} found`;
+
+  document.getElementById('flight-list').innerHTML = S.flights.map((f, i) => `
+    <div class="flight-card" id="fc${i}" onclick="pickFlight(${i})">
+      <div class="fc-top">
+        <div>
+          <div class="fc-airline">${f.airline}</div>
+          <div class="fc-fnum">✈ ${f.flight_id}</div>
+        </div>
+        <div class="fc-price">
+          <div class="fc-amount">$${f.price}</div>
+          <div class="fc-pp">per person</div>
+        </div>
+      </div>
+      <div class="fc-times">
+        <div class="fc-time">
+          <div class="fc-t">${f.dep}</div>
+          <div class="fc-iata">${S.origin.iata}</div>
+        </div>
+        <div class="fc-mid">
+          <div class="fc-dur">${f.dur}</div>
+          <div class="fc-line"></div>
+        </div>
+        <div class="fc-time">
+          <div class="fc-t">${f.arr}</div>
+          <div class="fc-iata">${S.dest.iata}</div>
+        </div>
+      </div>
+      <div class="fc-seats ${seatsClass(f.seats)}">${seatsIcon(f.seats)} ${f.seats} seat${f.seats !== 1 ? 's' : ''} left</div>
+    </div>
+  `).join('');
+}
+
+function pickFlight(i) {
+  S.picked = S.flights[i];
+  document.querySelectorAll('.flight-card').forEach(c => c.classList.remove('picked'));
+  document.getElementById(`fc${i}`).classList.add('picked');
+  document.getElementById('btn-pick').classList.remove('hidden');
+}
+
+function goToDetails() {
+  if (!S.picked) return;
+  showStep(3);
+}
+
+// ─── Step 3 — Passenger ───────────────────────────────────────
+function goToReview() {
+  clearErr('err3');
+  const name    = document.getElementById('inp-name').value.trim();
+  const contact = document.getElementById('inp-contact').value.trim();
+
+  if (!name)                      { err('err3', 'Please enter your full legal name.'); return; }
+  if (name.trim().split(/\s+/).length < 2) { err('err3', 'Please enter both first and last name.'); return; }
+  if (!contact)                   { err('err3', 'Please enter a phone number or email address.'); return; }
+
+  S.name = name; S.contact = contact;
+  const f = S.picked;
+
+  document.getElementById('rv-flight').textContent  = `${f.airline} · Flight ${f.flight_id}`;
+  document.getElementById('rv-route').textContent   = `${S.origin.iata} → ${S.dest.iata}  ·  ${fmtDate(S.date)}`;
+  document.getElementById('rv-times').textContent   = `Departs ${f.dep}  ·  Arrives ${f.arr}  ·  ${f.dur}`;
+  document.getElementById('rv-name').textContent    = name;
+  document.getElementById('rv-contact').textContent = contact;
+  document.getElementById('rv-price').textContent   = `$${f.price}`;
+
+  showStep(4);
+}
+
+function goBack(from) {
+  showStep(from - 1);
+}
+
+// ─── Step 4 — Confirm ─────────────────────────────────────────
+async function doConfirm() {
+  clearErr('err4');
+  btnLoading('btn-confirm', ' Confirming…');
+
+  try {
+    const confNum = await bookFlight(S.picked);
+
+    let sentMsg = 'Booking confirmed.';
+    try {
+      const r = await sendConf(confNum, S.picked);
+      if      (r.startsWith('SMS_SENT'))   sentMsg = `✓ Confirmation sent by SMS to ${S.contact}`;
+      else if (r.startsWith('EMAIL_SENT')) sentMsg = `✓ Confirmation sent by email to ${S.contact}`;
+      else sentMsg = r;
+    } catch(_) {
+      sentMsg = 'Booking confirmed. Add your Twilio/SendGrid keys to .env to enable notifications.';
+    }
+
+    const f = S.picked;
+    document.getElementById('conf-num').textContent  = confNum;
+    document.getElementById('sent-box').textContent  = sentMsg;
+    document.getElementById('ok-flight').textContent = `${f.airline} · Flight ${f.flight_id}`;
+    document.getElementById('ok-route').textContent  = `${S.origin.iata} → ${S.dest.iata}  ·  ${fmtDate(S.date)}`;
+    document.getElementById('ok-times').textContent  = `Departs ${f.dep}  ·  Arrives ${f.arr}  ·  ${f.dur}`;
+    document.getElementById('ok-name').textContent   = S.name;
+
+    showStep(5);
+  } catch(e) {
+    err('err4', e.message);
+    btnReset('btn-confirm', 'Confirm & Book');
+  }
+}
+
+// ─── Reset ────────────────────────────────────────────────────
+function resetApp() {
+  document.getElementById('inp-from').value    = '';
+  document.getElementById('inp-to').value      = '';
+  document.getElementById('inp-name').value    = '';
+  document.getElementById('inp-contact').value = '';
+  Object.assign(S, { origin:null, dest:null, date:'', flights:[], picked:null, name:'', contact:'' });
+  document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
+  showStep(1);
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+(function init() {
+  const di = document.getElementById('inp-date');
+  const today = new Date().toISOString().split('T')[0];
+  const max   = new Date(); max.setFullYear(max.getFullYear() + 1);
+  di.min   = today;
+  di.max   = max.toISOString().split('T')[0];
+  di.value = today;
+
+  // Allow Enter key on search form
+  ['inp-from','inp-to','inp-date'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doSearch();
+    });
+  });
+})();
+</script>
+</body>
+</html>

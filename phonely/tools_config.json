@@ -1,0 +1,138 @@
+[
+  {
+    "name": "resolve_airport",
+    "description": "Convert a city name or airport name to an IATA airport code. Call this for BOTH the departure city and destination city before calling check_flights.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "city_name": {
+          "type": "string",
+          "description": "The city or airport name as provided by the caller (e.g. 'Los Angeles', 'LAX', 'New York', 'Heathrow')"
+        }
+      },
+      "required": ["city_name"]
+    },
+    "webhook": {
+      "url": "https://YOUR_NGROK_OR_DOMAIN/tools",
+      "method": "POST"
+    }
+  },
+  {
+    "name": "check_flights",
+    "description": "Search for available flights between two airports on a given date. Returns up to 3 flight options with airline, flight number, times, and price. Returns NO_FLIGHTS if no routes exist.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "origin_iata": {
+          "type": "string",
+          "description": "IATA code for the departure airport (e.g. 'LAX')"
+        },
+        "destination_iata": {
+          "type": "string",
+          "description": "IATA code for the destination airport (e.g. 'JFK')"
+        },
+        "travel_date": {
+          "type": "string",
+          "description": "Travel date in YYYY-MM-DD format (e.g. '2026-07-15')"
+        }
+      },
+      "required": ["origin_iata", "destination_iata", "travel_date"]
+    },
+    "webhook": {
+      "url": "https://YOUR_NGROK_OR_DOMAIN/tools",
+      "method": "POST"
+    }
+  },
+  {
+    "name": "book_flight",
+    "description": "Confirm a flight booking after the customer has chosen a flight and provided their details. Returns a confirmation number. Only call this AFTER the customer has verbally confirmed they want to proceed.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "flight_id": {
+          "type": "string",
+          "description": "The flight ID from the check_flights result (e.g. 'SKY101')"
+        },
+        "travel_date": {
+          "type": "string",
+          "description": "Travel date in YYYY-MM-DD format"
+        },
+        "passenger_name": {
+          "type": "string",
+          "description": "Full legal name of the passenger as it appears on their ID"
+        },
+        "contact_info": {
+          "type": "string",
+          "description": "US phone number (for SMS) or email address (for email) to send the confirmation to"
+        }
+      },
+      "required": ["flight_id", "travel_date", "passenger_name", "contact_info"]
+    },
+    "webhook": {
+      "url": "https://YOUR_NGROK_OR_DOMAIN/tools",
+      "method": "POST"
+    }
+  },
+  {
+    "name": "send_confirmation",
+    "description": "Send the booking confirmation to the customer. Sends SMS if contact_info is a US phone number, or email otherwise. Call this immediately after book_flight succeeds.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "confirmation_number": {
+          "type": "string",
+          "description": "The confirmation number returned by book_flight (e.g. 'SKY-4B2XR7')"
+        },
+        "passenger_name": {
+          "type": "string",
+          "description": "Full name of the passenger"
+        },
+        "contact_info": {
+          "type": "string",
+          "description": "US phone number or email address"
+        },
+        "flight_id": {
+          "type": "string",
+          "description": "Flight ID (e.g. 'SKY101')"
+        },
+        "airline": {
+          "type": "string",
+          "description": "Airline name (e.g. 'SkyLine Airways')"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Origin IATA code"
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination IATA code"
+        },
+        "travel_date": {
+          "type": "string",
+          "description": "Travel date in YYYY-MM-DD format"
+        },
+        "departure_time": {
+          "type": "string",
+          "description": "Departure time (e.g. '06:00')"
+        },
+        "arrival_time": {
+          "type": "string",
+          "description": "Arrival time (e.g. '14:30')"
+        },
+        "price": {
+          "type": "number",
+          "description": "Ticket price in USD"
+        }
+      },
+      "required": [
+        "confirmation_number", "passenger_name", "contact_info",
+        "flight_id", "airline", "origin", "destination",
+        "travel_date", "departure_time", "arrival_time", "price"
+      ]
+    },
+    "webhook": {
+      "url": "https://YOUR_NGROK_OR_DOMAIN/tools",
+      "method": "POST"
+    }
+  }
+]

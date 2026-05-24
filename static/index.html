@@ -204,6 +204,28 @@
     }
     .details-left { text-align: left; }
 
+    /* ── Wake-up banner ─────────────────────────────────────── */
+    #wake-banner {
+      background: #fffbeb;
+      border-bottom: 1px solid #fcd34d;
+      color: #92400e;
+      font-size: 13px;
+      padding: 9px 32px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    #wake-banner.hidden { display: none !important; }
+    .wake-spin {
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      border: 2px solid #fcd34d;
+      border-top-color: #92400e;
+      animation: rot .75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
     /* ── Helper ─────────────────────────────────────────────── */
     .hint   { font-size: 11px; color: #94a3b8; margin-top: 5px; }
     .hidden { display: none !important; }
@@ -228,6 +250,11 @@
   </style>
 </head>
 <body>
+
+<div id="wake-banner" class="hidden">
+  <div class="wake-spin"></div>
+  Service is starting up — first visit may take up to 30 seconds...
+</div>
 
 <!-- Header -->
 <header class="header">
@@ -689,6 +716,20 @@ function resetApp() {
   document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
   showStep(1);
 }
+
+// ─── Wake-up detection ────────────────────────────────────────
+(function() {
+  const banner = document.getElementById('wake-banner');
+  let shown = false;
+  const timer = setTimeout(() => {
+    shown = true;
+    banner.classList.remove('hidden');
+  }, 2000);
+  fetch('/health').finally(() => {
+    clearTimeout(timer);
+    banner.classList.add('hidden');
+  });
+})();
 
 // ─── Init ─────────────────────────────────────────────────────
 (function init() {

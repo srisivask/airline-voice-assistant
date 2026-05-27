@@ -178,6 +178,31 @@
     #sendBtn:hover:not(:disabled) { background: #16304f; transform: scale(1.06); }
     #sendBtn:disabled { background: #b0bec5; cursor: not-allowed; }
 
+    #micBtn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: #e8f0fe;
+      color: #1e3a5f;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+    }
+    #micBtn:hover:not(:disabled) { background: #d0e2fb; transform: scale(1.06); }
+    #micBtn:disabled { background: #e8ecf0; color: #b0bec5; cursor: not-allowed; }
+    #micBtn.recording {
+      background: #fee2e2;
+      color: #dc2626;
+      animation: mic-pulse 1s ease-in-out infinite;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+      50%       { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0); }
+    }
+
     .hint {
       text-align: center;
       font-size: .72rem;
@@ -243,20 +268,30 @@
   <div class="input-area">
     <div class="input-row">
       <textarea id="userInput" rows="1" placeholder="Type a message…" aria-label="Message"></textarea>
+      <button id="micBtn" aria-label="Speak" title="Hold to speak">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
       <button id="sendBtn" aria-label="Send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
       </button>
     </div>
-    <div class="hint">Press Enter to send · Shift+Enter for new line</div>
+    <div class="hint" id="inputHint">Press Enter to send · click 🎤 to speak</div>
   </div>
 </div>
 
 <script>
-  const messagesEl = document.getElementById("messages");
-  const inputEl    = document.getElementById("userInput");
-  const sendBtn    = document.getElementById("sendBtn");
+  const messagesEl   = document.getElementById("messages");
+  const inputEl      = document.getElementById("userInput");
+  const sendBtn      = document.getElementById("sendBtn");
+  const micBtn       = document.getElementById("micBtn");
+  const hintEl       = document.getElementById("inputHint");
   const sessionBadge = document.getElementById("sessionBadge");
 
   let sessionId = crypto.randomUUID();
@@ -391,6 +426,7 @@
     if (busy || !message.trim()) return;
     busy = true;
     sendBtn.disabled = true;
+    micBtn.disabled = true;
 
     addBubble("user", message);
     showTyping();
@@ -415,6 +451,7 @@
     } finally {
       busy = false;
       sendBtn.disabled = false;
+      if (recognition) micBtn.disabled = false;
       inputEl.focus();
     }
   }
@@ -422,6 +459,7 @@
   async function greet() {
     busy = true;
     sendBtn.disabled = true;
+    micBtn.disabled = true;
     showTyping();
 
     let bubbleEl = null;
@@ -442,6 +480,7 @@
     } finally {
       busy = false;
       sendBtn.disabled = false;
+      if (recognition) micBtn.disabled = false;
     }
   }
 
@@ -472,6 +511,73 @@
       send(msg);
     }
   });
+
+  // ── Voice input ──────────────────────────────────────────────────────────
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isRecording = false;
+
+  if (!SpeechRecognition) {
+    micBtn.disabled = true;
+    micBtn.title = "Speech recognition not supported in this browser (try Chrome or Edge)";
+    hintEl.textContent = "Press Enter to send · Shift+Enter for new line";
+  } else {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isRecording = true;
+      micBtn.classList.add("recording");
+      micBtn.title = "Listening… click to stop";
+      hintEl.textContent = "Listening… speak now";
+      inputEl.placeholder = "Listening…";
+    };
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript.trim();
+      inputEl.value = transcript;
+      inputEl.style.height = "auto";
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+    };
+
+    recognition.onend = () => {
+      isRecording = false;
+      micBtn.classList.remove("recording");
+      micBtn.title = "Click to speak";
+      hintEl.textContent = "Press Enter to send · click 🎤 to speak";
+      inputEl.placeholder = "Type a message…";
+
+      // Auto-send if something was transcribed
+      const msg = inputEl.value.trim();
+      if (msg && !busy) {
+        inputEl.value = "";
+        inputEl.style.height = "auto";
+        send(msg);
+      }
+    };
+
+    recognition.onerror = (e) => {
+      isRecording = false;
+      micBtn.classList.remove("recording");
+      inputEl.placeholder = "Type a message…";
+      hintEl.textContent = "Press Enter to send · click 🎤 to speak";
+      if (e.error !== "aborted") {
+        addSysMsg("Mic error: " + e.error + ". Please try again.");
+      }
+    };
+
+    micBtn.addEventListener("click", () => {
+      if (busy) return;
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        inputEl.value = "";
+        recognition.start();
+      }
+    });
+  }
 
   // Wake-up detection: show banner after 2s if server hasn't responded yet
   (function() {
